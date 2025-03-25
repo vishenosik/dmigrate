@@ -44,11 +44,11 @@ func NewDgraphMigratorContext(
 		return nil, errors.New("dgraph client not initialized")
 	}
 
-	if err := applySchema(client, ctx); err != nil {
+	if err := applySchema(ctx, client); err != nil {
 		return nil, err
 	}
 
-	version, err := fetchVersion(client, ctx)
+	version, err := fetchVersion(ctx, client)
 	if err != nil && !errors.Is(err, ErrVersionFetch) {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (dmr *dgraphMigrator) UpContext(ctx context.Context, path string) error {
 			return err
 		}
 
-		if err := dmr.upsertVersion(ctx); err != nil {
+		if err := upsertVersion(ctx, dmr.client, migration.version); err != nil {
 			return err
 		}
 	}
