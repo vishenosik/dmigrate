@@ -8,6 +8,7 @@ golang dgraph migrator package
 * [CHANGELOG](docs/CHANGELOG.md)
 * [CONTRIBUTING](docs/CONTRIBUTING.md)
 * [RELEASING](docs/RELEASING.md)
+* [LICENSE](docs/LICENSE)
 
 ## Tools
 
