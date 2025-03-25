@@ -8,7 +8,7 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
-func applySchema(client *dgo.Dgraph, ctx context.Context) error {
+func applySchema(ctx context.Context, client *dgo.Dgraph) error {
 	return client.Alter(ctx, &api.Operation{
 		Schema: `
 		version_index_name: string @index(exact) .
@@ -22,7 +22,7 @@ func applySchema(client *dgo.Dgraph, ctx context.Context) error {
 	})
 }
 
-func fetchVersion(client *dgo.Dgraph, ctx context.Context) (Version, error) {
+func fetchVersion(ctx context.Context, client *dgo.Dgraph) (Version, error) {
 
 	q := `query {
 		current_version(func: eq(version_index_name, "current schema version")) {
@@ -56,28 +56,46 @@ func fetchVersion(client *dgo.Dgraph, ctx context.Context) (Version, error) {
 	return r.Version[0], nil
 }
 
-func (dmr *dgraphMigrator) upsertVersion(ctx context.Context) error {
+func upsertVersion(ctx context.Context, client *dgo.Dgraph, version int64) error {
 
-	txn := dmr.client.NewTxn()
+	txn := client.NewTxn()
 	defer txn.Discard(ctx)
 
 	/*
-	   query = `
-	   	query {
-	   		user as var(func: eq(email, "wrong_email@dgraph.io"))
-	   	}`
-	     mu := &api.Mutation{
-	   	SetNquads: []byte(`uid(user) <email> "correct_email@dgraph.io" .`),
-	     }
-	     req := &api.Request{
-	   	Query: query,
-	   	Mutations: []*api.Mutation{mu},
-	   	CommitNow:true,
-	     }
+		q := `query all($a: string) {
+		    all(func: eq(name, $a)) {
+		      name
+		    }
+		  }`
 
-	     // Update email only if matching uid found.
-	     _, err := dg.NewTxn().Do(ctx, req)
-	     // Check error
+		res, err := txn.QueryWithVars(ctx, q, map[string]string{"$a": "Alice"})
+		fmt.Printf("%s\n", res.Json)
+
+		req := &api.Request{
+		  Query: q,
+		  Vars: map[string]string{"$a": "Alice"},
+		}
+		res, err := txn.Do(ctx, req)
+		// Check error
+		fmt.Printf("%s\n", res.Json)
+
+
+			   query = `
+			   	query {
+			   		user as var(func: eq(email, "wrong_email@dgraph.io"))
+			   	}`
+			     mu := &api.Mutation{
+			   	SetNquads: []byte(`uid(user) <email> "correct_email@dgraph.io" .`),
+			     }
+			     req := &api.Request{
+			   	Query: query,
+			   	Mutations: []*api.Mutation{mu},
+			   	CommitNow:true,
+			     }
+
+			     // Update email only if matching uid found.
+			     _, err := dg.NewTxn().Do(ctx, req)
+			     // Check error
 
 	*/
 
@@ -89,6 +107,10 @@ func (dmr *dgraphMigrator) upsertVersion(ctx context.Context) error {
   		  	  	name
   		  	}
   		}
+
+		query UserByEmail($email: string){
+			user as var(func: eq(email, $email))
+		}
 
   		mutation {
   		  	set {
