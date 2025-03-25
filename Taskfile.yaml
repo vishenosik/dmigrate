@@ -1,0 +1,42 @@
+version: "3"
+
+env:
+  # coverage file
+  COVERAGE_FILE: ./cover.out
+
+tasks:
+
+  # TESTING
+
+  test:
+    desc: Test all packages
+    cmd: sh scripts/testing.sh $COVERAGE_FILE
+  
+  test-coverage:
+    desc: Generates coverage html after testing
+    aliases: [cover]
+    deps:
+      - test
+    cmd: go tool cover -html="$COVERAGE_FILE"
+
+  mock:
+    desc: Generates all mocks
+    cmd: go generate $INTERNAL_WILDCARD
+
+  # TOOLS
+
+  lint:
+    desc: Lint all files
+    cmds: 
+      - fieldalignment -fix $INTERNAL_WILDCARD
+      - gosec ./...
+    ignore_error: true
+      
+  graph:
+    desc: Generate dependency graph in pdf
+    cmd: go mod graph | modgraphviz | dot -Tpdf -o graph.pdf
+    
+  generate_hmac_key:
+    desc: Generate hmac_secret_file used to configure dgraph secrets so far
+    aliases: [gen-hmac]
+    cmd: tr -dc 'a-zA-Z0-9' < /dev/urandom | dd bs=1 count=32 of=./deploy/compose/dgraph/acl/hmac_secret
