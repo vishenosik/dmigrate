@@ -56,7 +56,20 @@ func fetchVersion(ctx context.Context, client *dgo.Dgraph) (Version, error) {
 	return r.Version[0], nil
 }
 
-func upsertVersion(ctx context.Context, client *dgo.Dgraph, version int64) error {
+func upVersion(
+	ctx context.Context,
+	client *dgo.Dgraph,
+	version int64,
+	schemaUp []byte,
+) error {
+
+	op := &api.Operation{
+		Schema: string(schemaUp),
+	}
+
+	if err := client.Alter(ctx, op); err != nil {
+		return err
+	}
 
 	txn := client.NewTxn()
 	defer txn.Discard(ctx)
