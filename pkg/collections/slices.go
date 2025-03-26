@@ -26,7 +26,7 @@ func Filter[T any](seq iter.Seq[T], by func(T) bool) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for i := range seq {
 			if !by(i) {
-				return
+				continue
 			}
 			if !yield(i) {
 				return
