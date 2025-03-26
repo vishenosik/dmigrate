@@ -23,13 +23,18 @@ type migration struct {
 
 type migrations = []migration
 
-func migrationsToApply(filenamesIter iter.Seq[string], currentVersion int64) iter.Seq[migration] {
-	collected := collectMigrationsAll(filenamesIter)
+func migrationsToApply(
+	filenamesIter iter.Seq[string],
+	currentVersion int64,
+	toVersion int64,
+) iter.Seq[migration] {
 
 	filtered := collections.Filter(
-		collected,
+		collectMigrations(filenamesIter),
 		func(m migration) bool {
-			return m.version > currentVersion
+			return m.version > currentVersion &&
+				((toVersion <= 0 || m.version <= toVersion) ||
+					(toVersion > 0 && m.version <= toVersion))
 		},
 	)
 
@@ -43,7 +48,7 @@ func migrationsToApply(filenamesIter iter.Seq[string], currentVersion int64) ite
 	return collections.Iter(sorted)
 }
 
-func collectMigrationsAll(filenames iter.Seq[string]) iter.Seq[migration] {
+func collectMigrations(filenames iter.Seq[string]) iter.Seq[migration] {
 	return func(yield func(migration) bool) {
 		for filename := range filenames {
 			version, ok := parseVersion(filename)

@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dgraph-io/dgo/v210"
-	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 const (
@@ -64,20 +63,22 @@ func (dmr *dgraphMigrator) Up(path string) error {
 	return dmr.UpContext(context.Background(), path)
 }
 
-// 1. Get current version
-// 2. Collect .gql files
-// 3. Sort provided versions
-// 4. Alter versions greater than current
-// 5. If success - update version in dgraph
-// 6. If failure - Rollback
 func (dmr *dgraphMigrator) UpContext(ctx context.Context, path string) error {
+	return dmr.UpToContext(ctx, path, 0)
+}
+
+func (dmr *dgraphMigrator) UpTo(path string, toVersion int64) error {
+	return dmr.UpToContext(context.Background(), path, toVersion)
+}
+
+func (dmr *dgraphMigrator) UpToContext(ctx context.Context, path string, toVersion int64) error {
 
 	filenamesIter, err := collectFilenames(dmr.fsys, path)
 	if err != nil {
 		return err
 	}
 
-	migrations := migrationsToApply(filenamesIter, dmr.currentVersion)
+	migrations := migrationsToApply(filenamesIter, dmr.currentVersion, toVersion)
 
 	for migration := range migrations {
 
@@ -86,15 +87,7 @@ func (dmr *dgraphMigrator) UpContext(ctx context.Context, path string) error {
 			return err
 		}
 
-		op := &api.Operation{
-			Schema: string(schemaUp),
-		}
-
-		if err := dmr.client.Alter(ctx, op); err != nil {
-			return err
-		}
-
-		if err := upsertVersion(ctx, dmr.client, migration.version); err != nil {
+		if err := upVersion(ctx, dmr.client, migration.version, schemaUp); err != nil {
 			return err
 		}
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/vishenosik/dmigrate/pkg/collections"
 )
 
-func Test_collectMigrationsAll(t *testing.T) {
+func Test_collectMigrations(t *testing.T) {
 
 	suite := NewSuite()
 
@@ -18,9 +18,44 @@ func Test_collectMigrationsAll(t *testing.T) {
 		{version: 3, filename: suite.validFilenames[2]},
 	}
 
-	filenamesIter := collections.Iter(suite.validFilenames)
-	actual := slices.Collect(collectMigrationsAll(filenamesIter))
+	filenamesIter := collections.Iter(suite.filenames)
+
+	actual := slices.Collect(collectMigrations(filenamesIter))
 	assert.Equal(t, expected, actual)
+
+}
+
+func Test_migrationsToApply(t *testing.T) {
+
+	suite := NewSuite()
+
+	filenamesIter := collections.Iter(suite.validFilenames)
+
+	expected := migrations{
+		{version: 1, filename: suite.validFilenames[0]},
+		{version: 2, filename: suite.validFilenames[1]},
+		{version: 3, filename: suite.validFilenames[2]},
+	}
+
+	t.Run("first full migration", func(t *testing.T) {
+		actual := slices.Collect(migrationsToApply(filenamesIter, 0, 0))
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("first migration to version 2", func(t *testing.T) {
+		actual := slices.Collect(migrationsToApply(filenamesIter, 0, 2))
+		assert.Equal(t, expected[:2], actual)
+	})
+
+	t.Run("full migration from 1", func(t *testing.T) {
+		actual := slices.Collect(migrationsToApply(filenamesIter, 1, 0))
+		assert.Equal(t, expected[1:], actual)
+	})
+
+	t.Run("no migration (current >= toVersion)", func(t *testing.T) {
+		actual := slices.Collect(migrationsToApply(filenamesIter, 2, 1))
+		assert.Len(t, actual, 0)
+	})
 
 }
 
