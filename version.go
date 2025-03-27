@@ -11,7 +11,7 @@ import (
 )
 
 type Version struct {
-	Timestamp      string   `json:"version_timestamp,omitempty"`
+	Timestamp      int64    `json:"version_timestamp,omitempty"`
 	CurrentVersion int64    `json:"version_current,omitempty"`
 	DType          []string `json:"dgraph.type,omitempty"`
 }
