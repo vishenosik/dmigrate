@@ -3,20 +3,24 @@ package migrate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"time"
 
-	"github.com/dgraph-io/dgo/v210"
-	"github.com/dgraph-io/dgo/v210/protos/api"
+	"github.com/dgraph-io/dgo/v240"
+	"github.com/dgraph-io/dgo/v240/protos/api"
 )
+
+const node = "dmigrate_version_node"
 
 func applySchema(ctx context.Context, client *dgo.Dgraph) error {
 	return client.Alter(ctx, &api.Operation{
 		Schema: `
-		version_index_name: string @index(exact) .
-		version_timestamp: datetime .
-		version_current: int .
+		version_index_name: string @index(exact) @upsert .
+		version_timestamp: int @index(int) @upsert .
+		version_current: int @index(int) @upsert .
 		type SchemaVersion {
 			version_index_name: string
-			version_timestamp: datetime	
+			version_timestamp: int
 			version_current: int
 		}`,
 	})
@@ -24,8 +28,9 @@ func applySchema(ctx context.Context, client *dgo.Dgraph) error {
 
 func fetchVersion(ctx context.Context, client *dgo.Dgraph) (Version, error) {
 
-	q := `query {
-		current_version(func: eq(version_index_name, "current schema version")) {
+	vars := map[string]string{"$node": node}
+	q := `query node_name($node: string){
+		current_version(func: eq(version_index_name, $node)) {
 			version_timestamp	
 			version_current
 		}
@@ -34,7 +39,7 @@ func fetchVersion(ctx context.Context, client *dgo.Dgraph) (Version, error) {
 	txn := client.NewTxn()
 	defer txn.Discard(ctx)
 
-	resp, err := txn.Query(ctx, q)
+	resp, err := txn.QueryWithVars(ctx, q, vars)
 	if err != nil {
 		return Version{}, err
 	}
@@ -71,67 +76,36 @@ func upVersion(
 		return err
 	}
 
+	vars := map[string]string{"$node": node}
+	q := `
+		query node_name($node: string){
+			version_node as var(func: eq(version_index_name, $node)) {}
+		}`
+
+	mu := &api.Mutation{
+		SetNquads: []byte(fmt.Sprintf(`
+		    uid(version_node) <version_index_name> "%s" .
+			uid(version_node) <version_current> "%d" .
+			uid(version_node) <version_timestamp> "%d" .`,
+			node,
+			version,
+			time.Now().Unix(),
+		)),
+	}
+
+	req := &api.Request{
+		Query:     q,
+		Vars:      vars,
+		Mutations: []*api.Mutation{mu},
+		CommitNow: true,
+	}
+
 	txn := client.NewTxn()
 	defer txn.Discard(ctx)
 
-	/*
-		q := `query all($a: string) {
-		    all(func: eq(name, $a)) {
-		      name
-		    }
-		  }`
-
-		res, err := txn.QueryWithVars(ctx, q, map[string]string{"$a": "Alice"})
-		fmt.Printf("%s\n", res.Json)
-
-		req := &api.Request{
-		  Query: q,
-		  Vars: map[string]string{"$a": "Alice"},
-		}
-		res, err := txn.Do(ctx, req)
-		// Check error
-		fmt.Printf("%s\n", res.Json)
-
-
-			   query = `
-			   	query {
-			   		user as var(func: eq(email, "wrong_email@dgraph.io"))
-			   	}`
-			     mu := &api.Mutation{
-			   	SetNquads: []byte(`uid(user) <email> "correct_email@dgraph.io" .`),
-			     }
-			     req := &api.Request{
-			   	Query: query,
-			   	Mutations: []*api.Mutation{mu},
-			   	CommitNow:true,
-			     }
-
-			     // Update email only if matching uid found.
-			     _, err := dg.NewTxn().Do(ctx, req)
-			     // Check error
-
-	*/
-
-	_ = `
-	upsert {
-  		query {
-  		  	q(func: eq(email, "user@company1.io")) {
-  		  	  	v as uid
-  		  	  	name
-  		  	}
-  		}
-
-		query UserByEmail($email: string){
-			user as var(func: eq(email, $email))
-		}
-
-  		mutation {
-  		  	set {
-  		  	  	uid(v) <name> "first last" .
-  		  	  	uid(v) <email> "user@company1.io" .
-  		  	}
-  		}
-	}`
+	if _, err := txn.Do(ctx, req); err != nil {
+		return err
+	}
 
 	return nil
 }

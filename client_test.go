@@ -2,8 +2,7 @@ package migrate
 
 import (
 	"context"
-	"fmt"
-	"time"
+	"log"
 
 	"github.com/dgraph-io/dgo/v240"
 	"github.com/dgraph-io/dgo/v240/protos/api"
@@ -12,21 +11,15 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-type Config struct {
-	User     string
-	Password string
-	Host     string
-	Port     uint16
-	Timeout  time.Duration
-}
+const (
+	addr     = "localhost:9180"
+	user     = "groot"
+	password = "password"
+)
 
-func connect(
-	ctx context.Context,
-	config Config,
-) (*dgo.Dgraph, error) {
+type cancelFunc func()
 
-	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
-
+func getTestingDgraphClient() (*dgo.Dgraph, cancelFunc) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
@@ -34,17 +27,17 @@ func connect(
 
 	connection, err := grpc.NewClient(addr, opts...)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
 	client := dgo.NewDgraphClient(
 		api.NewDgraphClient(connection),
 	)
 
-	err = client.Login(ctx, config.User, config.Password)
+	err = client.Login(context.Background(), user, password)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	return client, nil
+	return client, func() { connection.Close() }
 }

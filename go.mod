@@ -3,7 +3,7 @@ module github.com/vishenosik/dmigrate
 go 1.23.7
 
 require (
-	github.com/dgraph-io/dgo/v210 v210.0.0-20230328113526-b66f8ae53a2d
+	github.com/dgraph-io/dgo/v240 v240.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.7.0
 	github.com/stretchr/testify v1.10.0
@@ -13,7 +13,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/net v0.37.0 // indirect

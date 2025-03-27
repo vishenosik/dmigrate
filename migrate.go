@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v240"
 )
 
 const (
