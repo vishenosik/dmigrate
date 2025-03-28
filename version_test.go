@@ -10,7 +10,7 @@ import (
 
 func Test_collectMigrations(t *testing.T) {
 
-	suite := NewSuite()
+	suite := newFsSuite()
 
 	expected := migrations{
 		{version: 1, filename: suite.validFilenames[0]},
@@ -27,7 +27,7 @@ func Test_collectMigrations(t *testing.T) {
 
 func Test_migrationsToApply(t *testing.T) {
 
-	suite := NewSuite()
+	suite := newFsSuite()
 
 	filenamesIter := collections.Iter(suite.validFilenames)
 
