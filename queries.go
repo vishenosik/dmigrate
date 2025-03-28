@@ -10,16 +10,12 @@ import (
 	"github.com/dgraph-io/dgo/v240/protos/api"
 )
 
-const node = "dmigrate_version_node"
-
 func applySchema(ctx context.Context, client *dgo.Dgraph) error {
 	return client.Alter(ctx, &api.Operation{
 		Schema: `
-		version_index_name: string @index(exact) @upsert .
 		version_timestamp: int @index(int) @upsert .
 		version_current: int @index(int) @upsert .
 		type SchemaVersion {
-			version_index_name: string
 			version_timestamp: int
 			version_current: int
 		}`,
@@ -28,9 +24,8 @@ func applySchema(ctx context.Context, client *dgo.Dgraph) error {
 
 func fetchVersion(ctx context.Context, client *dgo.Dgraph) (Version, error) {
 
-	vars := map[string]string{"$node": node}
-	q := `query node_name($node: string){
-		current_version(func: eq(version_index_name, $node)) {
+	q := `query {
+		current_version(func: eq(dgraph.type, "SchemaVersion")) {
 			version_timestamp	
 			version_current
 		}
@@ -39,7 +34,7 @@ func fetchVersion(ctx context.Context, client *dgo.Dgraph) (Version, error) {
 	txn := client.NewTxn()
 	defer txn.Discard(ctx)
 
-	resp, err := txn.QueryWithVars(ctx, q, vars)
+	resp, err := txn.Query(ctx, q)
 	if err != nil {
 		return Version{}, err
 	}
@@ -76,18 +71,16 @@ func upVersion(
 		return err
 	}
 
-	vars := map[string]string{"$node": node}
 	q := `
-		query node_name($node: string){
-			version_node as var(func: eq(version_index_name, $node)) {}
+		query {
+			version_node as var(func: eq(dgraph.type, "SchemaVersion")) {}
 		}`
 
 	mu := &api.Mutation{
 		SetNquads: []byte(fmt.Sprintf(`
-		    uid(version_node) <version_index_name> "%s" .
+		    uid(version_node) <dgraph.type> "SchemaVersion" .
 			uid(version_node) <version_current> "%d" .
 			uid(version_node) <version_timestamp> "%d" .`,
-			node,
 			version,
 			time.Now().Unix(),
 		)),
@@ -95,7 +88,6 @@ func upVersion(
 
 	req := &api.Request{
 		Query:     q,
-		Vars:      vars,
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
