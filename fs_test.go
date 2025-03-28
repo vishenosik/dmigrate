@@ -14,17 +14,17 @@ var (
 	test_migrations embed.FS
 )
 
-type suite struct {
+type fsSuite struct {
 	dir            string
 	validFilenames []string
 	filenames      []string
 }
 
-func NewSuite() suite {
+func newFsSuite() fsSuite {
 
 	testdir := path.Join("test", "migrations")
 
-	return suite{
+	return fsSuite{
 		dir: testdir,
 		validFilenames: []string{
 			path.Join(testdir, "0001_create_initial_schema.gql"),
@@ -44,7 +44,7 @@ func NewSuite() suite {
 
 func Test_collectFilenames(t *testing.T) {
 
-	suite := NewSuite()
+	suite := newFsSuite()
 
 	actualIter, err := collectFilenames(test_migrations, suite.dir)
 	actual := slices.Collect(actualIter)

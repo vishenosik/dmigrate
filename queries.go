@@ -77,13 +77,14 @@ func upVersion(
 		}`
 
 	mu := &api.Mutation{
-		SetNquads: []byte(fmt.Sprintf(`
+		SetNquads: fmt.Appendf(
+			[]byte{}, `
 		    uid(version_node) <dgraph.type> "SchemaVersion" .
 			uid(version_node) <version_current> "%d" .
 			uid(version_node) <version_timestamp> "%d" .`,
 			version,
 			time.Now().Unix(),
-		)),
+		),
 	}
 
 	req := &api.Request{

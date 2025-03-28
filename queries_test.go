@@ -13,11 +13,11 @@ import (
 
 func Test_queries(t *testing.T) {
 
-	client, cancelCli := getTestingDgraphClient()
-	defer cancelCli()
+	suite := newClientSuite(t)
+	defer suite.cancel()
 
-	ctx, cancelCtx := context.WithCancel(context.Background())
-	defer cancelCtx()
+	client := suite.client
+	ctx := suite.ctx
 
 	err := applySchema(ctx, client)
 	assert.NoError(t, err)
