@@ -1,17 +1,14 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
 name: Go
 
 on:
   push:
-    branches: [ "main" , "feat/GTH-DMR-1-make-up-migration"]
+    branches: [ "main" , "dev" ]
   pull_request:
-    branches: [ "main" , "feat/GTH-DMR-1-make-up-migration"]
+    branches: [ "main" , "dev" ]
 
 jobs:
 
-  build:
+  testing:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
