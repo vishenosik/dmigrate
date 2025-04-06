@@ -21,8 +21,6 @@ const (
 	password string = "password"
 )
 
-type cancelFunc = func()
-
 type clientSuite struct {
 	client *dgo.Dgraph
 	ctx    context.Context
