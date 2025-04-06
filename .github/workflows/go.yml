@@ -5,9 +5,9 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" , "feat/GTH-DMR-1-make-up-migration"]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main" , "feat/GTH-DMR-1-make-up-migration"]
 
 jobs:
 
@@ -16,10 +16,19 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install Podman and Podman Compose
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -qq -y podman podman-docker podman-compose
+
+    - name: Start Podman socket
+      run: |
+        sudo systemctl start podman.socket
+
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.23.7'
 
     - name: Test
-      run: go test -v ./...
+      run: sh scripts/testing.sh podman cover.out
