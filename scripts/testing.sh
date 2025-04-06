@@ -1,15 +1,16 @@
 #!/bin/bash
 
-COVERAGE_FILE=$1
+CONTAINER_TOOL=$1
+COVERAGE_FILE=$2
 TESTING_LIST=$(go list ./... | grep -v mocks | grep -v gen )
 
-docker compose -f ./test/compose/docker-compose.yml up --force-recreate --remove-orphans --detach
+$CONTAINER_TOOL compose -f ./test/compose/dgraph.yml up --force-recreate --remove-orphans --detach
 
-echo waiting for docker...
+echo waiting for $CONTAINER_TOOL...
 sleep 15
-echo done waiting for docker, start testing...
+echo done waiting for $CONTAINER_TOOL, start testing...
 
 go test -v -cover -coverprofile=$COVERAGE_FILE $TESTING_LIST
 
-echo cleanup docker...
-docker compose -f ./test/compose/docker-compose.yml down
+echo cleanup $CONTAINER_TOOL...
+$CONTAINER_TOOL compose -f ./test/compose/dgraph.yml down
