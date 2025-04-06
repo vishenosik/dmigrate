@@ -17,10 +17,7 @@ var (
 	ErrVersionFetch = errors.New("no version fetched")
 )
 
-type Logger interface {
-	Fatalf(format string, v ...any)
-	Printf(format string, v ...any)
-}
+type MigratorOption func(*dgraphMigrator)
 
 type dgraphMigrator struct {
 	client         *dgo.Dgraph
@@ -29,14 +26,15 @@ type dgraphMigrator struct {
 	log            Logger
 }
 
-func NewDgraphMigrator(client *dgo.Dgraph, fsys fs.FS) (*dgraphMigrator, error) {
-	return NewDgraphMigratorContext(context.Background(), client, fsys)
+func NewDgraphMigrator(client *dgo.Dgraph, fsys fs.FS, opts ...MigratorOption) (*dgraphMigrator, error) {
+	return NewDgraphMigratorContext(context.Background(), client, fsys, opts...)
 }
 
 func NewDgraphMigratorContext(
 	ctx context.Context,
 	client *dgo.Dgraph,
 	fsys fs.FS,
+	opts ...MigratorOption,
 ) (*dgraphMigrator, error) {
 
 	if client == nil {
@@ -52,11 +50,26 @@ func NewDgraphMigratorContext(
 		return nil, err
 	}
 
+	dmr := defaultMigrator(client, fsys, version.CurrentVersion)
+
+	for _, opt := range opts {
+		opt(dmr)
+	}
+
+	return dmr, nil
+}
+
+func defaultMigrator(
+	client *dgo.Dgraph,
+	fsys fs.FS,
+	currentVersion int64,
+) *dgraphMigrator {
 	return &dgraphMigrator{
 		client:         client,
 		fsys:           fsys,
-		currentVersion: version.CurrentVersion,
-	}, nil
+		currentVersion: currentVersion,
+		log:            &stdLogger{},
+	}
 }
 
 func (dmr *dgraphMigrator) Up(path string) error {
@@ -75,22 +88,29 @@ func (dmr *dgraphMigrator) UpToContext(ctx context.Context, path string, toVersi
 
 	filenamesIter, err := collectFilenames(dmr.fsys, path)
 	if err != nil {
+		dmr.log.Fatalf("collect filenames failed", err)
 		return err
 	}
 
 	migrations := migrationsToApply(filenamesIter, dmr.currentVersion, toVersion)
 
+	lastVersion := int64(0)
 	for migration := range migrations {
 
 		schemaUp, err := readUpMigration(dmr.fsys, migration.filename)
 		if err != nil {
+			dmr.log.Fatalf("failed to read migration file", err)
 			return err
 		}
 
 		if err := upVersion(ctx, dmr.client, migration.version, schemaUp); err != nil {
+			dmr.log.Fatalf("failed to update version", err)
 			return err
 		}
+		lastVersion = migration.version
 	}
+
+	dmr.log.Printf("migrated successfully", "current version", lastVersion)
 
 	return nil
 }
