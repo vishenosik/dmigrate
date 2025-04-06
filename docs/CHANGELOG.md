@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 
 - *(migrate)* Add initial files.
 - *(client / queries)* Correct versions schema. Add tests. Update deps.
+- *(logging)* Add logger init & functional options. Add std logger to handle nil loggers passed to With func.
+- *(client)* Route dgraph client init through connect(). This is meant to add abstraction to users.
+- *(connect)* Add cancel function to dgraph connection.
 
 ### 🐛 Bug Fixes
 
