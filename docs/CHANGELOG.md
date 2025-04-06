@@ -26,6 +26,8 @@ All notable changes to this project will be documented in this file.
 - *(changelog)* Add changelog workflow. Add docs.
 - *(license)* Move LICENSE to docs.
 - *(readme)* Add LICENSE link to README.
+- *(readme)* Add minimal instructions to readme.
+- *(migrate)* Add minimal comments to exported functions.
 
 ### 🧪 Testing
 
