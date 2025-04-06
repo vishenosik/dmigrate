@@ -13,7 +13,15 @@ func Test_UpTo(t *testing.T) {
 	suite := newClientSuite(t)
 	defer suite.cancel()
 
-	migrator, err := NewDgraphMigrator(suite.client, test_migrations)
+	migrator, err := NewDgraphMigrator(
+		Config{
+			User:     user,
+			Password: password,
+			Host:     host,
+			Port:     port,
+		},
+		test_migrations,
+	)
 	require.NoError(t, err)
 
 	testdir := path.Join("test", "migrations")

@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	addr     = "localhost:9180"
-	user     = "groot"
-	password = "password"
+	addr     string = "localhost:9180"
+	host     string = "localhost"
+	port     uint16 = 9180
+	user     string = "groot"
+	password string = "password"
 )
 
 type cancelFunc = func()
