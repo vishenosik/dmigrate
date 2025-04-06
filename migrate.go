@@ -77,20 +77,44 @@ func defaultMigrator(
 	}
 }
 
+// Up applies all available migrations from the specified path.
+// It uses a background context and applies all migrations regardless of version.
+// Returns an error if any migration fails.
 func (dmr *dgraphMigrator) Up(path string) error {
 	return dmr.UpToContext(context.Background(), path, 0)
 }
 
+// UpContext applies all available migrations from the specified path using the provided context.
+// It applies all migrations regardless of version.
+// Returns an error if any migration fails.
 func (dmr *dgraphMigrator) UpContext(ctx context.Context, path string) error {
 	return dmr.UpToContext(ctx, path, 0)
 }
 
+// UpTo applies migrations from the specified path up to the given version (inclusive).
+// It uses a background context.
+// Returns an error if any migration fails or if the specified version doesn't exist.
 func (dmr *dgraphMigrator) UpTo(path string, toVersion int64) error {
 	return dmr.UpToContext(context.Background(), path, toVersion)
 }
 
+// UpToContext applies migrations from the specified path up to the given version (inclusive) using the provided context.
+// It handles the migration process including:
+//   - Collecting migration filenames
+//   - Determining which migrations need to be applied
+//   - Executing each migration in order
+//   - Updating version tracking
+//
+// Parameters:
+//
+//	ctx: Context for cancellation and timeouts
+//	path: Directory path where migration files are located
+//	toVersion: Target version to migrate to (0 means apply all)
+//
+// Returns:
+//
+//	error: Any error that occurred during migration, or nil if successful
 func (dmr *dgraphMigrator) UpToContext(ctx context.Context, path string, toVersion int64) error {
-
 	defer dmr.cancel()
 
 	filenamesIter, err := collectFilenames(dmr.fsys, path)
@@ -103,7 +127,6 @@ func (dmr *dgraphMigrator) UpToContext(ctx context.Context, path string, toVersi
 
 	lastVersion := int64(0)
 	for migration := range migrations {
-
 		schemaUp, err := readUpMigration(dmr.fsys, migration.filename)
 		if err != nil {
 			dmr.log.Fatalf("failed to read migration file", err)
