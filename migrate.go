@@ -60,7 +60,7 @@ func NewDgraphMigratorContext(
 }
 
 func (dmr *dgraphMigrator) Up(path string) error {
-	return dmr.UpContext(context.Background(), path)
+	return dmr.UpToContext(context.Background(), path, 0)
 }
 
 func (dmr *dgraphMigrator) UpContext(ctx context.Context, path string) error {
