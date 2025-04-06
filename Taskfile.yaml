@@ -1,7 +1,7 @@
 version: "3"
 
-env:
-  # coverage file
+vars:
+  CONTAINER_TOOL: podman
   COVERAGE_FILE: ./test/cover.out
 
 tasks:
@@ -10,14 +10,19 @@ tasks:
 
   test:
     desc: Test all packages
-    cmd: sh scripts/testing.sh $COVERAGE_FILE
+    requires:
+      vars:
+        - COVERAGE_FILE
+        - name: CONTAINER_TOOL
+          enum: [docker, podman]
+    cmd: sh scripts/testing.sh {{.CONTAINER_TOOL}} {{.COVERAGE_FILE}}
   
   test-coverage:
     desc: Generates coverage html after testing
     aliases: [cover]
     deps:
       - test
-    cmd: go tool cover -html="$COVERAGE_FILE"
+    cmd: go tool cover -html="{{.COVERAGE_FILE}}"
 
   mock:
     desc: Generates all mocks
@@ -38,8 +43,8 @@ tasks:
 
   docker-test-up:
     desc: Run docker containers for testing
-    cmd: docker compose -f ./test/compose/docker-compose.yml up --force-recreate --remove-orphans --detach
+    cmd: docker compose -f ./test/compose/dgraph.yml up --force-recreate --remove-orphans --detach
 
   docker-test-down:
     desc: Kill docker containers for testing
-    cmd: docker compose -f ./test/compose/docker-compose.yml down
+    cmd: docker compose -f ./test/compose/dgraph.yml down
