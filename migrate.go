@@ -24,6 +24,7 @@ type dgraphMigrator struct {
 	fsys           fs.FS
 	currentVersion int64
 	log            Logger
+	cancel         cancelFunc
 }
 
 func NewDgraphMigrator(
@@ -41,10 +42,7 @@ func NewDgraphMigratorContext(
 	opts ...MigratorOption,
 ) (*dgraphMigrator, error) {
 
-	client, err := connect(ctx, config)
-	if err != nil {
-		return nil, errors.Wrap(err, "dgraph client not initialized")
-	}
+	client, cancel := mustConnect(ctx, config)
 
 	if err := applySchema(ctx, client); err != nil {
 		return nil, err
@@ -55,7 +53,7 @@ func NewDgraphMigratorContext(
 		return nil, err
 	}
 
-	dmr := defaultMigrator(client, fsys, version.CurrentVersion)
+	dmr := defaultMigrator(client, fsys, version.CurrentVersion, cancel)
 
 	for _, opt := range opts {
 		opt(dmr)
@@ -68,12 +66,14 @@ func defaultMigrator(
 	client *dgo.Dgraph,
 	fsys fs.FS,
 	currentVersion int64,
+	cancel cancelFunc,
 ) *dgraphMigrator {
 	return &dgraphMigrator{
 		client:         client,
 		fsys:           fsys,
 		currentVersion: currentVersion,
 		log:            &stdLogger{},
+		cancel:         cancel,
 	}
 }
 
@@ -90,6 +90,8 @@ func (dmr *dgraphMigrator) UpTo(path string, toVersion int64) error {
 }
 
 func (dmr *dgraphMigrator) UpToContext(ctx context.Context, path string, toVersion int64) error {
+
+	defer dmr.cancel()
 
 	filenamesIter, err := collectFilenames(dmr.fsys, path)
 	if err != nil {
