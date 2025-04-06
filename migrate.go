@@ -26,19 +26,24 @@ type dgraphMigrator struct {
 	log            Logger
 }
 
-func NewDgraphMigrator(client *dgo.Dgraph, fsys fs.FS, opts ...MigratorOption) (*dgraphMigrator, error) {
-	return NewDgraphMigratorContext(context.Background(), client, fsys, opts...)
+func NewDgraphMigrator(
+	config Config,
+	fsys fs.FS,
+	opts ...MigratorOption,
+) (*dgraphMigrator, error) {
+	return NewDgraphMigratorContext(context.Background(), config, fsys, opts...)
 }
 
 func NewDgraphMigratorContext(
 	ctx context.Context,
-	client *dgo.Dgraph,
+	config Config,
 	fsys fs.FS,
 	opts ...MigratorOption,
 ) (*dgraphMigrator, error) {
 
-	if client == nil {
-		return nil, errors.New("dgraph client not initialized")
+	client, err := connect(ctx, config)
+	if err != nil {
+		return nil, errors.Wrap(err, "dgraph client not initialized")
 	}
 
 	if err := applySchema(ctx, client); err != nil {
